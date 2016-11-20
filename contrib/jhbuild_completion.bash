@@ -24,6 +24,7 @@
 # this file.
 #
 
+JHBUILD_MODULES_FILE=~/.config/jhbuild_modules
 _jhbuild()
 {
 	local cur prev command_list i v
@@ -38,7 +39,13 @@ _jhbuild()
 	update|updateone|build|buildone|list|dot|info|-t|-s|-a|-n|-c)
 		# FIXME: some of these options can take multiple module names
 		# give them a list of modules
-		command_list="`jhbuild list -a`"
+		if ! [ -v jhbuild_modules ]; then
+			if ! [ -f $JHBUILD_MODULES_FILE ]; then
+				jhbuild list -a 2>/dev/null > $JHBUILD_MODULES_FILE &
+			fi
+			jhbuild_modules=$(cat $JHBUILD_MODULES_FILE)
+		fi
+		command_list="${jhbuild_modules}"
 		;;
 	run)
 		# give them a list of commands
@@ -80,5 +87,10 @@ _jhbuild()
 	done
 }
 
+
+# index modules
+if ! [ -f $JHBUILD_MODULES_FILE ]; then
+	jhbuild list -a 2>/dev/null > $JHBUILD_MODULES_FILE &
+fi
 # load the completion
 complete -F _jhbuild jhbuild
