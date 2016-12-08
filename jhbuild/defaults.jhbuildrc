@@ -49,6 +49,8 @@ if os.path.exists(os.path.expanduser('~/checkout/gnome')):
 else:
     checkoutroot = '~/jhbuild/checkout/'
 
+os.environ['JHBUILD_CHECKOUT'] = checkoutroot
+
 xdg_cache_home = os.environ.get('XDG_CACHE_HOME',
                                 os.path.join(os.path.expanduser('~'),
                                              '.cache'))
@@ -56,7 +58,7 @@ tarballdir = os.path.join(xdg_cache_home, 'jhbuild', 'downloads')
 
 # Set to None to perform builds within the source trees.
 buildroot = os.path.join(xdg_cache_home, 'jhbuild', 'build')
-
+os.environ['JHBUILD_BUILD'] = buildroot
 # When using srcdir!=builddir builds, this key allows you to use a
 # different builddir name.  Some people like this because it reduces
 # the chance of mixing the two up.  In the pattern, '%s' will be
