@@ -16,6 +16,8 @@ RUN apt-get -y update && \
     apt-file update && \
     rm -rf /var/lib/apt/lists/*
 
+RUN echo "$USER ALL=(ALL) NOPASSWD: ALL" > /etc/sudoers.d/nopasswd
+
 USER $USER
 WORKDIR $JHBUILD_PATH/jhbuild
 

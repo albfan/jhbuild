@@ -1,0 +1,29 @@
+#FROM fedora:25
+FROM c6dd8b881992
+LABEL maintainer "waltervargas@linux.com"
+
+# ENV USER gnome
+# ENV PACKAGES @c-development @development-tools redhat-rpm-config gnome-common pygobject2 dbus-python perl-Text-CSV perl-XML-Parser gettext-devel gtk-doc ninja-build
+
+# RUN /usr/bin/dnf -y -q install $PACKAGES
+
+# RUN /usr/sbin/adduser $USER
+# USER $USER
+# WORKDIR /home/$USER
+
+# ENV JHBUILD_PATH jhbuild/checkout
+# RUN mkdir -p $JHBUILD_PATH
+
+# RUN echo 'PATH=~/.local/bin:$PATH' >> $HOME/.bashrc
+# RUN source $HOME/.bashrc
+
+ADD . /home/$USER/$JHBUILD_PATH
+WORKDIR /home/$USER/$JHBUILD_PATH
+
+RUN ./autogen.sh --simple-install
+RUN make
+RUN make install
+
+RUN jhbuild sysdeps --install
+RUN jhbuild sanitycheck
+RUN jhbuild build adwaita-icon-theme dconf glib-networking gvfs libcanberra
