@@ -1,0 +1,14 @@
+FROM archlinuxjp/archlinux-yaourt
+
+RUN pacman --noconfirm -S git sudo base-devel pkgfile vim
+RUN chmod 640 /etc/sudoers 
+RUN echo '%wheel ALL=(ALL) NOPASSWD: ALL' >> /etc/sudoers 
+RUN chmod 440 /etc/sudoers 
+
+RUN useradd -m -d /home/docker -p docker -G wheel docker
+RUN chown -R docker:users /home/docker
+
+RUN sudo -u docker yaourt -S --noconfirm jhbuild
+RUN sudo -u docker jhbuild sysdeps --install
+RUN jhbuild sanitycheck
+#RUN jhbuild build adwaita-icon-theme dconf glib-networking gvfs libcanberra
