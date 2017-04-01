@@ -1,29 +1,30 @@
-#FROM fedora:25
-FROM c6dd8b881992
+FROM fedora:25
 LABEL maintainer "waltervargas@linux.com"
 
-# ENV USER gnome
-# ENV PACKAGES @c-development @development-tools redhat-rpm-config gnome-common pygobject2 dbus-python perl-Text-CSV perl-XML-Parser gettext-devel gtk-doc ninja-build
+ENV USER gnome
 
-# RUN /usr/bin/dnf -y -q install $PACKAGES
+RUN useradd -m -u 1000 $USER
+#RUN /usr/sbin/adduser $USER
 
-# RUN /usr/sbin/adduser $USER
-# USER $USER
-# WORKDIR /home/$USER
+ENV JHBUILD_PATH /home/$USER/jhbuild/checkout
+RUN mkdir -p $JHBUILD_PATH
+ADD . $JHBUILD_PATH/jhbuild
+RUN chown -R $USER /home/$USER
 
-# ENV JHBUILD_PATH jhbuild/checkout
-# RUN mkdir -p $JHBUILD_PATH
+RUN dnf clean metadata && dnf -y update && dnf -y install @"Development Tools" @gnome-software-development libtasn1-tools systemd-devel cups-devel cmake opencc-devel tracker-devel PackageKit
 
-# RUN echo 'PATH=~/.local/bin:$PATH' >> $HOME/.bashrc
-# RUN source $HOME/.bashrc
-
-ADD . /home/$USER/$JHBUILD_PATH
-WORKDIR /home/$USER/$JHBUILD_PATH
+USER $USER
+WORKDIR $JHBUILD_PATH/jhbuild
 
 RUN ./autogen.sh --simple-install
 RUN make
 RUN make install
 
-RUN jhbuild sysdeps --install
-RUN jhbuild sanitycheck
-RUN jhbuild build adwaita-icon-theme dconf glib-networking gvfs libcanberra
+env PATH $HOME/.local/bin:$PATH
+
+RUN echo "PATH=$HOME/.local/bin:$PATH" >> $HOME/.bashrc
+RUN source $HOME/.bashrc
+
+RUN $HOME/.local/bin/jhbuild sysdeps --install
+RUN $HOME/.local/bin/jhbuild sanitycheck
+#RUN jhbuild build adwaita-icon-theme dconf glib-networking gvfs libcanberra
