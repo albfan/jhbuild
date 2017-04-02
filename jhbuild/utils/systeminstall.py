@@ -471,8 +471,96 @@ class AptSystemInstall(SystemInstall):
     def detect(cls):
         return cmds.has_command('apt-file')
 
+class DnfSystemInstall(SystemInstall):
+    def __init__(self):
+        SystemInstall.__init__(self)
+
+    def _get_package_for(self, filename, exact_match):
+        if exact_match:
+            proc = subprocess.Popen(['apt-file', '--fixed-string', 'search', filename],
+                                    stdout=subprocess.PIPE, close_fds=True)
+        else:
+            proc = subprocess.Popen(['apt-file', 'search', filename],
+                                    stdout=subprocess.PIPE, close_fds=True)
+        stdout = proc.communicate()[0]
+        if proc.returncode != 0:
+            return None
+        for line in StringIO(stdout):
+            parts = line.split(':', 1)
+            if len(parts) != 2:
+                continue
+            name = parts[0]
+            path = parts[1]
+            # Ignore copies of the pkg-config files that are not from the
+            # libraries.
+            if '/lsb3' in path:
+                continue
+            if '/emscripten' in path:
+                continue
+
+            # otherwise for now, just take the first match
+            return name
+
+    def _try_append_native_package(self, modname, filename, native_packages, exact_match):
+        native_pkg = self._get_package_for(filename, exact_match)
+        if native_pkg:
+            native_packages.append(native_pkg)
+            return True
+        return False
+
+    def _append_native_package_or_warn(self, modname, filename, native_packages, exact_match):
+        if not self._try_append_native_package(modname, filename, native_packages, exact_match):
+            logging.info(_('No native package found for %(id)s '
+                           '(%(filename)s)') % {'id'       : modname,
+                                                'filename' : filename})
+
+    def _install_packages(self, native_packages):
+        logging.info(_('Installing: %(pkgs)s') % {'pkgs': ' '.join(native_packages)})
+        args = self._root_command_prefix_args + ['dnf', 'install']
+        args.extend(native_packages)
+        subprocess.check_call(args)
+
+    def install(self, uninstalled):
+        logging.info(_('Using apt-file to search for providers; this may be extremely slow. Please wait. Patience!'))
+        native_packages = []
+
+        pkgconfigs = [(modname, '/%s.pc' % pkg) for modname, pkg in
+                      get_uninstalled_pkgconfigs(uninstalled)]
+        for modname, filename in pkgconfigs:
+            self._append_native_package_or_warn(modname, filename, native_packages, False)
+
+        binaries = [(modname, '/usr/bin/%s' % pkg) for modname, pkg in
+                    get_uninstalled_binaries(uninstalled)]
+        for modname, filename in binaries:
+            self._append_native_package_or_warn(modname, filename, native_packages, True)
+
+        # Get multiarch include directory, e.g. /usr/include/x86_64-linux-gnu
+        multiarch = None
+        try:
+            multiarch = subprocess.check_output(['gcc', '-print-multiarch']).strip()
+        except:
+            # Really need GCC to continue. Yes, this is fragile.
+            self._install_packages(['gcc'])
+            multiarch = subprocess.check_output(['gcc', '-print-multiarch']).strip()
+
+        c_includes = get_uninstalled_c_includes(uninstalled)
+        for modname, filename in c_includes:
+            # Try multiarch first, so we print the non-multiarch location on failure.
+            if (multiarch == None or
+                not self._try_append_native_package(modname, '/usr/include/%s/%s' % (multiarch, filename), native_packages, True)):
+                self._append_native_package_or_warn(modname, '/usr/include/%s' % filename, native_packages, True)
+
+        if native_packages:
+            self._install_packages(native_packages)
+        else:
+            logging.info(_('Nothing to install'))
+
+    @classmethod
+    def detect(cls):
+        return cmds.has_command('dnf')
+
 # Ordered from best to worst
-_classes = [AptSystemInstall, PacmanSystemInstall, PKSystemInstall]
+_classes = [AptSystemInstall, PacmanSystemInstall, DnfSystemInstall, PKSystemInstall]
 
 if __name__ == '__main__':
     logging.basicConfig(level=logging.INFO)
