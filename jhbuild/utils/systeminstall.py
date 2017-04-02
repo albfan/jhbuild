@@ -477,10 +477,10 @@ class DnfSystemInstall(SystemInstall):
 
     def _get_package_for(self, filename, exact_match):
         if exact_match:
-            proc = subprocess.Popen(['apt-file', '--fixed-string', 'search', filename],
+            proc = subprocess.Popen(['rpm', '-qf', filename, "--queryformat '%{NAME}\n'"],
                                     stdout=subprocess.PIPE, close_fds=True)
         else:
-            proc = subprocess.Popen(['apt-file', 'search', filename],
+            proc = subprocess.Popen(['dnv', 'provides', filename],
                                     stdout=subprocess.PIPE, close_fds=True)
         stdout = proc.communicate()[0]
         if proc.returncode != 0:
