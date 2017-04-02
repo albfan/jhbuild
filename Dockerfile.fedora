@@ -11,7 +11,7 @@ RUN mkdir -p $JHBUILD_PATH
 ADD . $JHBUILD_PATH/jhbuild
 RUN chown -R $USER /home/$USER
 
-RUN dnf clean metadata && dnf -y update && dnf -y install @"Development Tools" @gnome-software-development libtasn1-tools systemd-devel cups-devel cmake opencc-devel tracker-devel PackageKit polkit pygobject2 dbus-python python2 gettext-devel gtk-doc ninja-build
+RUN dnf clean metadata && dnf -y update && dnf -y install @"Development Tools" @gnome-software-development libtasn1-tools systemd-devel cups-devel cmake opencc-devel tracker-devel PackageKit polkit pygobject2 dbus-python python2 gettext-devel gtk-doc ninja-build python-subprocess32
 
 USER $USER
 WORKDIR $JHBUILD_PATH/jhbuild
